@@ -6,11 +6,25 @@
 # in user-defined scripts (called handlers, 
 # which are in the `.ci` directory).
 
-function error -a message --description "error <message"
+# Configuration
+
+set BIX_DEFAULT_BRANCH "master"
+set BIX_GIT_HOST "git@git.geheimesite.nl"
+
+# Helpers
+
+function error -a message --description "error <message>"
   set_color brred
-  echo "ERROR: $message"
+  echo "🥴 $message"
   set_color normal
   exit 1
+end
+
+function success -a message --description "success <message>"
+  set_color white
+  echo $message
+  set_color normal
+  exit 0
 end
 
 function run -a handler --description "run <handler> [args]"
@@ -22,7 +36,7 @@ function run -a handler --description "run <handler> [args]"
     ./ci/$handler.sh $argv[2..-1]
   else
     if not set --query _flag_no_error
-      error "Project doesn't provide $handler handler."
+      error "Project doesn't provide $handler handler :("
     end
   end
 end
@@ -35,10 +49,20 @@ end
 
 function build --description "build [args]"
   run "build" $argv
+
+  success "🐳 Build succeeded!"
 end
 
 function check
   run "check"
+
+  success "🙉 Test succeeded!"
+end
+
+function format
+  run format
+
+  success "🐺 Source files formatted :)"
 end
 
 # CI/CD
@@ -49,21 +73,43 @@ end
 
 # Git wrappers
 
+function new -a name --description "new <name>" 
+  mkdir $name && cd $name
+  git init
+  git branch -M $BIX_DEFAULT_BRANCH
+
+  success "🐣 Set up a new Git repo for you :)"
+end
+
+function add-remote -a remote_repo --description "add-remote <repo>"
+  set remote origin
+  git remote add $remote "$BIX_GIT_HOST:$remote_repo"
+  git push -U $remote $BIX_DEFAULT_BRANCH
+  
+  success "🦑 Set up new remote $remote for you :)"
+end
+
 function push --description "push <args>"
   git push $argv
   run "deploy" --no-error 
+
+  success "🐢 Latest changes successfully deployed :D"
 end
 
 function merge -a from into --description "merge <from> <into> [merge args]"
   git checkout $into
   git merge --no-ff $from
   push origin $into  
+
+  git branch -d $from
+
+  success "🐙 Branch $from has been merged into $into. Yay!"
 end
 
 # Self-updating
 
 function update
-  echo "Downloading latest release from source"
+  echo "⚡️ Downloading latest release from source"
 
   set remote_release "https://git.geheimesite.nl/libre0b11/bix/raw/branch/master/install.sh"
   curl -sSfL $remote_release | fish
@@ -90,7 +136,9 @@ function help
   echo "    setup        Fetches and installs project dependencies using the 'setup' handler."
   echo "    build        Builds the project using the 'build' handler."
   echo "    check        Runs the test suite using the 'check' handler."
+  echo "    format       Formats your sourcefiles using the 'format' handler."
   echo "    deploy       Deploys the current changes using the 'deploy' handler."
+  echo "    add-remote   Adds a remote URL to the current local repo."
   echo "    push         Pushes the current commited changes to the remote and runs the 'deploy' handler."
   echo "    merge        Merges the current branch into another branch branch and then runs the above 'push' command."
   echo "    update       Pulls the latest bix version from source to replace the current one."
@@ -111,6 +159,8 @@ else
         check
       case "deploy"
         deploy
+      case "add-remote"
+        add-remote $argv[2..-1]
       case "push"
         push $argv[2..-1]
       case "merge"

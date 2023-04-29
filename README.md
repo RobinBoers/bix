@@ -18,9 +18,20 @@ Bix uses user-defined scripts in the `.ci` directory (also called handlers) to r
 
 It also provides some wrappers around common `git` commands to speed up my workflow. These are:
 
+- `bix new` to initialize a new git repo
+- `bix add-remote` to link an remote to your git repo.
 - `bix push` to push the current commits to the remote and then run the deploy handler[^1] in async.
 - `bix merge [from] <into>` merges the current (or `from`) branch into `into` (usually master).
 
 And last of all, just running `bix` runs the "entrypoint", which is currently hardcoded to `.ci/server.sh`. It should start your app.
+
+## Configuration
+
+Currently the configuration is hard-coded, but in the future you can configure bix using environment variables:
+
+```fish
+set BIX_DEFAULT_BRANCH "master"
+set BIX_GIT_HOST "git@git.geheimesite.nl"
+```
 
 [^1]: I run my CI/CD locally because I got tired of setting up GitHub actions.
