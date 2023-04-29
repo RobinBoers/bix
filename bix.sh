@@ -17,6 +17,7 @@ set -q BIX_GITEA_API_BASE;         or set BIX_GITEA_API_BASE         "https://gi
 # Helpers
 
 function error -a message --description "error <message>"
+  echo
   set_color brred
   echo "🥴 $message"
   set_color normal
@@ -114,6 +115,8 @@ function auth -a provider "auth <provider>"
 
       set token (json-get-by-key $response "sha1")
       store-token $token "gitea"
+    case ""
+      error "Please provide authentication provider"
     case "*"
       error "Unsupported authentication provider"
   end
