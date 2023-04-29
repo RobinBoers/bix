@@ -93,6 +93,7 @@ function help
   echo "    deploy       Deploys the current changes using the 'deploy' handler."
   echo "    push         Pushes the current commited changes to the remote and runs the 'deploy' handler."
   echo "    merge        Merges the current branch into another branch branch and then runs the above 'push' command."
+  echo "    update       Pulls the latest bix version from source to replace the current one."
   echo
 end
 
