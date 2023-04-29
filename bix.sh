@@ -89,6 +89,8 @@ end
 
 function deploy
   run "deploy"
+
+  success "🐢 Latest changes successfully deployed :D"
 end
 
 # Gitea 
@@ -177,7 +179,8 @@ end
 # Git wrappers
 
 function new -a name --description "new <name>" 
-  mkdir $name && cd $name
+  mkdir $name
+  cd $name
   git init
   git branch -M $BIX_GIT_DEFAULT_BRANCH
 
@@ -254,6 +257,7 @@ function help
   echo "    format         Formats the project using the 'format' handler."
   echo "    deploy         Deploys the current commit using the 'deploy' handler."
   echo
+  echo "    new            Initialize an empty git repository"
   echo "    auth           Authenticates an external server (rn the only provider is Gitea)."
   echo "    create-repo    Creates a new remote repository using the Gitea API." 
   echo "    link-repo      Adds a remote URL to the current local repo."
@@ -279,6 +283,8 @@ else
         check
       case "deploy"
         deploy
+      case "new"
+        new $argv[2..-1]
       case "auth"
         auth $argv[2..-1]
       case "create-repo"
