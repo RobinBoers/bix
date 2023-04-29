@@ -8,11 +8,10 @@
 
 # Configuration
 
-set -q BIX_DEFAULT_BRANCH;     set BIX_DEFAULT_BRANCH     "master"
-set -q BIX_GIT_HOST;           set BIX_GIT_HOST           "git@git.geheimesite.nl"
-# Gitea/Forgejo specific
-set -q BIX_GIT_HOST_API;       set BIX_GIT_HOST_API       "https://git.geheimesite.nl/api/v1"
-set -q BIX_GIT_HOST_API_TOKEN; set BIX_GIT_HOST_API_TOKEN "empty"
+set -q BIX_GIT_DEFAULT_BRANCH;     set BIX_GIT_DEFAULT_BRANCH     "master"
+set -q BIX_GIT_HOST;               set BIX_GIT_HOST               "git@git.geheimesite.nl"
+# Gitea/Forgejo specific, used for creating repos with the API
+set -q BIX_GITEA_API;              set BIX_GITEA_API              "https://git.geheimesite.nl/api/v1"
 
 # Helpers
 
@@ -79,17 +78,21 @@ end
 function new -a name --description "new <name>" 
   mkdir $name && cd $name
   git init
-  git branch -M $BIX_DEFAULT_BRANCH
+  git branch -M $BIX_GIT_DEFAULT_BRANCH
 
   success "🐣 Set up a new Git repo for you :)"
 end
 
 function create-remote -a remote_user remote_repo description "create-remote <user> <repo> <description>"
-  curl --request POST "$BIX_GIT_HOST_API/$user/repos" \
-    -H "Authorization: token $BIX_GIT_HOST_API_TOKEN" \
+  if test -z "$var"
+    error "Missing API token (please set BIX_GITEA_API_TOKEN)"
+  end
+  
+  curl --request POST "$BIX_GITEA_API/$user/repos" \
+    -H "Authorization: token $BIX_GITEA_API_TOKEN" \
     -d "{
       'auto_init': false,
-      'default_branch': '$BIX_DEFAULT_BRANCH',
+      'default_branch': '$BIX_GIT_DEFAULT_BRANCH',
       'description': '$description',
       'name': '$name',
       'private': false,
@@ -103,7 +106,7 @@ end
 function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
   git remote add $remote "$BIX_GIT_HOST:$remote_repo"
-  git push -U $remote $BIX_DEFAULT_BRANCH
+  git push -U $remote $BIX_GIT_DEFAULT_BRANCH
   
   success "🦑 Set up new remote $remote for you :)"
 end
@@ -151,16 +154,21 @@ function help
   echo 
   echo "SUBCOMMANDS:"
   echo
-  echo "    -            Starts the project by it's entrypoint (usually .ci/server.sh)"
-  echo "    setup        Fetches and installs project dependencies using the 'setup' handler."
-  echo "    build        Builds the project using the 'build' handler."
-  echo "    check        Runs the test suite using the 'check' handler."
-  echo "    format       Formats your sourcefiles using the 'format' handler."
-  echo "    deploy       Deploys the current changes using the 'deploy' handler."
-  echo "    add-remote   Adds a remote URL to the current local repo."
-  echo "    push         Pushes the current commited changes to the remote and runs the 'deploy' handler."
-  echo "    merge        Merges the current branch into another branch branch and then runs the above 'push' command."
-  echo "    update       Pulls the latest bix version from source to replace the current one."
+  echo "    -              Starts the project by it's entrypoint (usually the 'server' handler)"
+  echo
+  echo "    setup          Fetches and installs project dependencies using the 'setup' handler."
+  echo "    build          Builds the project using the 'build' handler."
+  echo "    check          Runs the project test suite using the 'check' handler."
+  echo "    format         Formats the project using the 'format' handler."
+  echo "    deploy         Deploys the current commit using the 'deploy' handler."
+  echo
+  echo "    create-remote  Creates a new remote repository using the Gitea API." 
+  echo "    add-remote     Adds a remote URL to the current local repo."
+  echo "    push           Pushes the current commited changes to the remote and runs the 'deploy' handler."
+  echo "    merge          Merges the current branch into another branch branch and then runs the above 'push' command."
+  echo
+  echo "    help           Prints this help text."
+  echo "    update         Pulls the latest bix version from source to replace the current one."
   echo
 end
 
@@ -186,6 +194,8 @@ else
         merge $argv[2..-1]
       case "run"
         run $argv[2..-1]
+      case "help"
+        help
       case "update"
         update 
       case "*"
