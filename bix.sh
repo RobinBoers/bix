@@ -13,12 +13,13 @@ function error -a message --description "error <message"
   exit 1
 end
 
-function run -a handler --description "run <handler>"
+function run -a handler --description "run <handler> [args]"
   set --local options 'no-error'
   argparse $options -- $argv
 
   if test -e ./ci/$handler.sh
-    ./ci/$handler.sh
+    # Caution: the remaining args could include the --no-error flag, which is then also passed to the handler!
+    ./ci/$handler.sh $argv[2..-1]
   else
     if not set --query _flag_no_error
       error "Project doesn't provide $handler handler."
@@ -32,8 +33,8 @@ function setup
   run "setup"
 end
 
-function build
-  run "build"
+function build --description "build [args]"
+  run "build" $argv
 end
 
 function check
@@ -57,6 +58,15 @@ function merge -a from into --description "merge <from> <into> [merge args]"
   git checkout $into
   git merge --no-ff $from
   push origin $into  
+end
+
+# Self-updating
+
+function update
+  echo "Downloading latest release from source"
+
+  set $remote_release "https://git.geheimesite.nl/libre0b11/bix/raw/branch/master/install.sh"
+  curl -sSfL $remote_release | fish
 end
 
 # Entrypoint
@@ -93,19 +103,21 @@ else
     set subcommand $argv[1]
     switch $subcommand 
       case "setup"
-        setup $argv[2..-1]
+        setup
       case "build"
         build $argv[2..-1]
       case "check"
-        check $argv[2..-1]
+        check
       case "deploy"
-        deploy $argv[2..-1]
+        deploy
       case "push"
         push $argv[2..-1]
       case "merge"
         merge $argv[2..-1]
       case "run"
         run $argv[2..-1]
+      case "update"
+        update 
       case "*"
         echo "Unknown subcommand $subcommand"
         exit 1
