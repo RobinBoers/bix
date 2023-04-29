@@ -203,7 +203,11 @@ function push --description "push <args>"
   git push $argv
   run "deploy" --no-error 
 
-  success "🐢 Latest changes successfully deployed :D"
+  if test -e .ci/deploy.sh
+    success "🐢 Latest changes successfully deployed :D"
+  else
+    success "🧶 Latest changes pushed to remote repo :)"
+  end
 end
 
 function merge -a from into --description "merge <from> <into> [merge args]"
