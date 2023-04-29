@@ -19,10 +19,14 @@ Bix uses user-defined scripts in the `.ci` directory (also called handlers) to r
 It also provides some wrappers around common `git` commands to speed up my workflow. These are:
 
 - `bix new <name>` to initialize a local git repo.
-- `bix create-remote <user> <repo> <description>` to create a remote repo.
 - `bix add-remote` to link a remote repo to your local repo.
 - `bix push` to push the current commits to the remote and then run the deploy handler[^1] in async.
 - `bix merge <from> <into>` merges the current (or `from`) branch into `into` (usually master).
+
+And to make working with git even easier, it also provides Gitea integration to create repos with ease:
+
+- `bix auth gitea` to login with your Gitea account (the API access token gets saved to your login keyring).
+- `bix create-remote` to create a new repo in your Gitea account (with optional --org parameter to use an org account).
 
 And last of all, just running `bix` runs the "entrypoint", which is currently hardcoded to `.ci/server.sh`. It should start your app.
 
@@ -34,8 +38,7 @@ Bix can be configured using environment variables:
 set BIX_DEFAULT_BRANCH          "master"
 set BIX_GIT_HOST                "git@git.geheimesite.nl"
 # Gitea/Forgejo specific, used for creating repos with the API
-set BIX_GITEA_API              "https://git.geheimesite.nl/api/v1"
-set BIX_GITEA_API_TOKEN        "empty"
+set BIX_GITEA_API_BASE          "https://git.geheimesite.nl/api/v1"
 ```
 
 [^1]: I run my CI/CD locally because I got tired of setting up GitHub actions.

@@ -8,10 +8,11 @@
 
 # Configuration
 
-set -q BIX_GIT_DEFAULT_BRANCH;     set BIX_GIT_DEFAULT_BRANCH     "master"
-set -q BIX_GIT_HOST;               set BIX_GIT_HOST               "git@git.geheimesite.nl"
+set -q BIX_GIT_DEFAULT_BRANCH;     or set BIX_GIT_DEFAULT_BRANCH     "master"
+set -q BIX_GIT_HOST;               or set BIX_GIT_HOST               "git@git.geheimesite.nl"
+
 # Gitea/Forgejo specific, used for creating repos with the API
-set -q BIX_GITEA_API;              set BIX_GITEA_API              "https://git.geheimesite.nl/api/v1"
+set -q BIX_GITEA_API_BASE;         or set BIX_GITEA_API_BASE         "https://git.geheimesite.nl/api/v1"
 
 # Helpers
 
@@ -41,6 +42,17 @@ function run -a handler --description "run <handler> [args]"
       error "Project doesn't provide $handler handler :("
     end
   end
+end
+
+# Keyring managment helpers
+
+function store-token -a token provider --description "store-secret <secret> <provider>"
+  echo $token | secret-tool store \
+    --label "$provider API access token" provider $provider setby bix
+end
+
+function get-token -a provider --description "store-secret <args>"
+  secret-tool lookup provider $provider setby bix
 end
 
 # Project management 
@@ -73,6 +85,71 @@ function deploy
   run "deploy"
 end
 
+# Gitea 
+
+function auth -a provider "auth <provider>"
+  switch $provider
+    case "gitea"
+      set username (read -P "Username: ")
+      set password (read -P "Password: ")
+
+      echo "$BIX_GITEA_API_BASE/users/$username/tokens"
+
+      set response (curl -sS --request POST "$BIX_GITEA_API_BASE/users/$username/tokens" \
+        --fail-with-body \
+        -H "Accept: application/json" \
+        -H "Content-Type: application/json" \
+        -d '{"name":"Bix"}' \
+        -u $username:$password || error "Gitea API returned an error, see trace above.")
+
+      set token (jq -n '$in.sha1' --argjson in $response --raw-output)
+      store-token $token "gitea"
+    case "*"
+      error "Unsupported authentication provider"
+  end
+end
+
+function create-remote -a name description "create-remote <repo> <description> [--org=string]"
+  set --local options 'org='
+  argparse $options -- $argv
+
+  set --local token (get-token "gitea")
+
+  if test -z $token
+    error "Missing API token (please run 'bix auth gitea')"
+  end
+
+  if test -z $name
+    error "Missing required parameter: name"
+  end
+
+  set body "{
+        \"auto_init\": false,
+        \"default_branch\": \"$BIX_GIT_DEFAULT_BRANCH\",
+        \"description\": \"$description\",
+        \"name\": \"$name\",
+        \"private\": false,
+        \"template\": false,
+        \"trust_model\": \"default\"
+      }"
+
+  if set --query _flag_org  
+    curl "$BIX_GITEA_API_BASE/orgs/$org/repos" \
+      --fail-with-body \
+      -H "Authorization: token $token"
+      -H "Content-Type: application/json" \
+      -d $body || error "Gitea API returned an error, see trace above."
+  else
+    curl "$BIX_GITEA_API_BASE/user/repos" \
+      --fail-with-body \
+      -H "Authorization: token $token" \
+      -H "Content-Type: application/json" \
+      -d $body || error "Gitea API returned an error, see trace above."
+  end
+
+  success "🧸 Created new remote Git repository on $BIX_GIT_HOST :)"
+end
+
 # Git wrappers
 
 function new -a name --description "new <name>" 
@@ -81,26 +158,6 @@ function new -a name --description "new <name>"
   git branch -M $BIX_GIT_DEFAULT_BRANCH
 
   success "🐣 Set up a new Git repo for you :)"
-end
-
-function create-remote -a remote_user remote_repo description "create-remote <user> <repo> <description>"
-  if test -z "$var"
-    error "Missing API token (please set BIX_GITEA_API_TOKEN)"
-  end
-  
-  curl --request POST "$BIX_GITEA_API/$user/repos" \
-    -H "Authorization: token $BIX_GITEA_API_TOKEN" \
-    -d "{
-      'auto_init': false,
-      'default_branch': '$BIX_GIT_DEFAULT_BRANCH',
-      'description': '$description',
-      'name': '$name',
-      'private': false,
-      'template': false,
-      'trust_model': 'default'
-    }"
-
-  success "🧸 Created new remote Git repository on $BIX_GIT_HOST :)"
 end
 
 function add-remote -a remote_repo --description "add-remote <repo>"
@@ -162,6 +219,7 @@ function help
   echo "    format         Formats the project using the 'format' handler."
   echo "    deploy         Deploys the current commit using the 'deploy' handler."
   echo
+  echo "    auth           Authenticates an external server (rn the only provider is Gitea)."
   echo "    create-remote  Creates a new remote repository using the Gitea API." 
   echo "    add-remote     Adds a remote URL to the current local repo."
   echo "    push           Pushes the current commited changes to the remote and runs the 'deploy' handler."
@@ -186,6 +244,10 @@ else
         check
       case "deploy"
         deploy
+      case "auth"
+        auth $argv[2..-1]
+      case "create-remote"
+        create-remote $argv[2..-1]
       case "add-remote"
         add-remote $argv[2..-1]
       case "push"
