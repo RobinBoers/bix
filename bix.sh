@@ -9,7 +9,7 @@
 # Configuration
 
 set -q BIX_GIT_DEFAULT_BRANCH;     or set BIX_GIT_DEFAULT_BRANCH     "master"
-set -q BIX_GIT_HOST;               or set BIX_GIT_HOST               "git@git.geheimesite.nl"
+set -q BIX_GIT_HOST_SSH;           or set BIX_GIT_HOST               "git@git.geheimesite.nl"
 
 # Gitea/Forgejo specific, used for creating repos with the API
 set -q BIX_GITEA_API_BASE;         or set BIX_GITEA_API_BASE         "https://git.geheimesite.nl/api/v1"
@@ -24,6 +24,7 @@ function error -a message --description "error <message>"
 end
 
 function success -a message --description "success <message>"
+  echo
   set_color white
   echo $message
   set_color normal
@@ -42,6 +43,10 @@ function run -a handler --description "run <handler> [args]"
       error "Project doesn't provide $handler handler :("
     end
   end
+end
+
+function json-get-by-key -a json_string key --description "json-get-by-key <string> <key>"
+  jq -n "\$in.$key" --argjson in $json_string --raw-output
 end
 
 # Keyring managment helpers
@@ -95,14 +100,19 @@ function auth -a provider "auth <provider>"
 
       echo "$BIX_GITEA_API_BASE/users/$username/tokens"
 
-      set response (curl -sS --request POST "$BIX_GITEA_API_BASE/users/$username/tokens" \
-        --fail-with-body \
+      set response (curl "$BIX_GITEA_API_BASE/users/$username/tokens" \
+        --fail-with-body --no-progress-meter \
         -H "Accept: application/json" \
         -H "Content-Type: application/json" \
         -d '{"name":"Bix"}' \
-        -u $username:$password || error "Gitea API returned an error, see trace above.")
+        -u $username:$password)
 
-      set token (jq -n '$in.sha1' --argjson in $response --raw-output)
+      if test $status != 0
+        echo $response
+        error "Gitea API returned an error, see trace above."
+      end
+
+      set token (json-get-by-key $response "sha1")
       store-token $token "gitea"
     case "*"
       error "Unsupported authentication provider"
@@ -134,20 +144,31 @@ function create-remote -a name description "create-remote <repo> <description> [
       }"
 
   if set --query _flag_org  
-    curl "$BIX_GITEA_API_BASE/orgs/$org/repos" \
-      --fail-with-body \
+    set response (curl "$BIX_GITEA_API_BASE/orgs/$org/repos" \
+      --fail-with-body --no-progress-meter \
       -H "Authorization: token $token"
       -H "Content-Type: application/json" \
-      -d $body || error "Gitea API returned an error, see trace above."
+      -d $body)
+
+    if test $status != 0
+      echo $response
+      error "Gitea API returned an error, see trace above."
+    end  
   else
-    curl "$BIX_GITEA_API_BASE/user/repos" \
-      --fail-with-body \
+    set response (curl "$BIX_GITEA_API_BASE/user/repos" \
+      --fail-with-body --no-progress-meter \
       -H "Authorization: token $token" \
       -H "Content-Type: application/json" \
-      -d $body || error "Gitea API returned an error, see trace above."
+      -d $body)
+
+    if test $status != 0
+      echo $response
+      error "Gitea API returned an error, see trace above."
+    end      
   end
 
-  success "🧸 Created new remote Git repository on $BIX_GIT_HOST :)"
+  set url (json-get-by-key $response "html_url")
+  success "🧸 Created new remote Git repository on $url :)"
 end
 
 # Git wrappers
@@ -162,7 +183,7 @@ end
 
 function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
-  git remote add $remote "$BIX_GIT_HOST:$remote_repo"
+  git remote add $remote "$BIX_GIT_HOST_SSH:$remote_repo"
   git push -U $remote $BIX_GIT_DEFAULT_BRANCH
   
   success "🦑 Set up new remote $remote for you :)"
