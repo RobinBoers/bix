@@ -8,8 +8,11 @@
 
 # Configuration
 
-set BIX_DEFAULT_BRANCH "master"
-set BIX_GIT_HOST "git@git.geheimesite.nl"
+set -q BIX_DEFAULT_BRANCH;     set BIX_DEFAULT_BRANCH     "master"
+set -q BIX_GIT_HOST;           set BIX_GIT_HOST           "git@git.geheimesite.nl"
+# Gitea/Forgejo specific
+set -q BIX_GIT_HOST_API;       set BIX_GIT_HOST_API       "https://git.geheimesite.nl/api/v1"
+set -q BIX_GIT_HOST_API_TOKEN; set BIX_GIT_HOST_API_TOKEN "empty"
 
 # Helpers
 
@@ -79,6 +82,22 @@ function new -a name --description "new <name>"
   git branch -M $BIX_DEFAULT_BRANCH
 
   success "🐣 Set up a new Git repo for you :)"
+end
+
+function create-remote -a remote_user remote_repo description "create-remote <user> <repo> <description>"
+  curl --request POST "$BIX_GIT_HOST_API/$user/repos" \
+    -H "Authorization: token $BIX_GIT_HOST_API_TOKEN" \
+    -d "{
+      'auto_init': false,
+      'default_branch': '$BIX_DEFAULT_BRANCH',
+      'description': '$description',
+      'name': '$name',
+      'private': false,
+      'template': false,
+      'trust_model': 'default'
+    }"
+
+  success "🧸 Created new remote Git repository on $BIX_GIT_HOST :)"
 end
 
 function add-remote -a remote_repo --description "add-remote <repo>"
