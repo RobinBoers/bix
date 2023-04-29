@@ -9,7 +9,7 @@
 # Configuration
 
 set -q BIX_GIT_DEFAULT_BRANCH;     or set BIX_GIT_DEFAULT_BRANCH     "master"
-set -q BIX_GIT_HOST_SSH;           or set BIX_GIT_HOST               "git.geheimesite.nl"
+set -q BIX_GIT_HOST_SSH;           or set BIX_GIT_HOST_SSH           "git.geheimesite.nl"
 
 # Gitea/Forgejo specific, used for creating repos with the API
 set -q BIX_GITEA_API_BASE;         or set BIX_GITEA_API_BASE         "https://git.geheimesite.nl/api/v1"
@@ -184,7 +184,7 @@ end
 function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
 
-  git remote show $remote > /dev/null && delete-remote $remote 
+  git remote show $remote > /dev/null 2> /dev/null && delete-remote $remote 
   git remote add $remote "$BIX_GIT_HOST_SSH:/$remote_repo"
     
   git push -u $remote $BIX_GIT_DEFAULT_BRANCH
