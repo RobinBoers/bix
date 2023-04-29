@@ -65,7 +65,7 @@ end
 function update
   echo "Downloading latest release from source"
 
-  set $remote_release "https://git.geheimesite.nl/libre0b11/bix/raw/branch/master/install.sh"
+  set remote_release "https://git.geheimesite.nl/libre0b11/bix/raw/branch/master/install.sh"
   curl -sSfL $remote_release | fish
 end
 
