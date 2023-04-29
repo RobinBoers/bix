@@ -9,7 +9,7 @@
 # Configuration
 
 set -q BIX_GIT_DEFAULT_BRANCH;     or set BIX_GIT_DEFAULT_BRANCH     "master"
-set -q BIX_GIT_HOST_SSH;           or set BIX_GIT_HOST               "git@git.geheimesite.nl"
+set -q BIX_GIT_HOST_SSH;           or set BIX_GIT_HOST               "git.geheimesite.nl"
 
 # Gitea/Forgejo specific, used for creating repos with the API
 set -q BIX_GITEA_API_BASE;         or set BIX_GITEA_API_BASE         "https://git.geheimesite.nl/api/v1"
@@ -119,7 +119,7 @@ function auth -a provider "auth <provider>"
   end
 end
 
-function create-remote -a name description "create-remote <repo> <description> [--org=string]"
+function create-repo -a name description "create-repo <repo> <description> [--org=string]"
   set --local options 'org='
   argparse $options -- $argv
 
@@ -183,10 +183,17 @@ end
 
 function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
-  git remote add $remote "$BIX_GIT_HOST_SSH:$remote_repo"
-  git push -U $remote $BIX_GIT_DEFAULT_BRANCH
+
+  git remote show $remote > /dev/null && delete-remote $remote 
+  git remote add $remote "$BIX_GIT_HOST_SSH:/$remote_repo"
+    
+  git push -u $remote $BIX_GIT_DEFAULT_BRANCH
   
   success "🦑 Set up new remote $remote for you :)"
+end
+
+function delete-remote -a remote --description "delete-remote <remote>"
+  git remote remove $remote
 end
 
 function push --description "push <args>"
@@ -241,8 +248,8 @@ function help
   echo "    deploy         Deploys the current commit using the 'deploy' handler."
   echo
   echo "    auth           Authenticates an external server (rn the only provider is Gitea)."
-  echo "    create-remote  Creates a new remote repository using the Gitea API." 
-  echo "    add-remote     Adds a remote URL to the current local repo."
+  echo "    create-repo    Creates a new remote repository using the Gitea API." 
+  echo "    link-repo      Adds a remote URL to the current local repo."
   echo "    push           Pushes the current commited changes to the remote and runs the 'deploy' handler."
   echo "    merge          Merges the current branch into another branch branch and then runs the above 'push' command."
   echo
@@ -267,9 +274,9 @@ else
         deploy
       case "auth"
         auth $argv[2..-1]
-      case "create-remote"
-        create-remote $argv[2..-1]
-      case "add-remote"
+      case "create-repo"
+        create-repo $argv[2..-1]
+      case "link-repo"
         add-remote $argv[2..-1]
       case "push"
         push $argv[2..-1]
