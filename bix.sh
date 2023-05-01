@@ -189,8 +189,9 @@ end
 
 function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
+  # Delete remote if it already exists
+  delete-remote $remote > /dev/null 2> /dev/null
 
-  git remote show $remote > /dev/null 2> /dev/null && delete-remote $remote 
   git remote add $remote "$BIX_GIT_HOST_SSH:/$remote_repo"
   
   if test $status != 0
