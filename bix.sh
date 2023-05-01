@@ -36,9 +36,9 @@ function run -a handler --description "run <handler> [args]"
   set --local options 'no-error'
   argparse $options -- $argv
 
-  if test -e ./ci/$handler.sh
+  if test -e ./.ci/$handler.sh
     # Caution: the remaining args could include the --no-error flag, which is then also passed to the handler!
-    ./ci/$handler.sh $argv[2..-1]
+    ./.ci/$handler.sh $argv[2..-1]
   else
     if not set --query _flag_no_error
       error "Project doesn't provide $handler handler :("
