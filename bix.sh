@@ -191,7 +191,7 @@ function add-remote -a remote_repo --description "add-remote <repo>"
   set remote origin
 
   git remote show $remote > /dev/null 2> /dev/null && delete-remote $remote 
-  git remote add $remote "$BIX_GIT_HOST_SSH:/$remote_repo"
+  git remote add $remote "$BIX_GIT_HOST_SSH:/$remote_repo" || error "Uh oh, that didn't work! Are you sure the remote exists? (It should be 'user/repo', not just 'repo')"
     
   git push -u $remote $BIX_GIT_DEFAULT_BRANCH
   
