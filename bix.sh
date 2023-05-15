@@ -32,11 +32,15 @@ function success -a message --description "success <message>"
   exit 0
 end
 
+function has-handler -a handler --description "has-handler <handler>"
+  test -e ./.ci/$handler.sh
+end
+
 function run -a handler --description "run <handler> [args]"
   set --local options 'no-error'
   argparse $options -- $argv
 
-  if test -e ./.ci/$handler.sh
+  if has-handler $handler
     # Caution: the remaining args could include the --no-error flag, which is then also passed to the handler!
     ./.ci/$handler.sh $argv[2..-1]
   else
@@ -48,6 +52,22 @@ end
 
 function json-get-by-key -a json_string key --description "json-get-by-key <string> <key>"
   jq -n "\$in.$key" --argjson in $json_string --raw-output
+end
+
+# Autodetect
+
+function detect-manager 
+  if test -e ./mix.exs
+    "mix"
+  else if test -e ./yarn.lock
+    "yarn"
+  else if test -e ./package.json
+    "npm"
+  else if test -e ./cargo.toml
+    "cargo"
+  else
+    false
+  end
 end
 
 # Keyring managment helpers
@@ -64,23 +84,91 @@ end
 # Project management 
 
 function setup
-  run "setup"
+  set handler "setup"
+
+  if test (has-handler $handler)
+    run $handler
+  else
+    switch (detect-manager) 
+      case "mix"
+        mix setup
+      case "npm"
+        npm install
+      case "yarn"
+        yarn install
+      case "cargo"
+        return
+      case "*"
+        error "Autodetect failed and project doesn't provide $handler handler :("
+    end
+  end
 end
 
 function build --description "build [args]"
-  run "build" $argv
+  set handler "build"
+
+  if test (has-handler $handler)
+    run $handler $argv
+  else
+    switch (detect-manager) 
+      case "mix"
+        mix phx.server $argv
+      case "npm"
+        npm run build $argv
+      case "yarn"
+        yarn run build $argv
+      case "cargo"
+        cargo build $argv
+      case "*"
+        error "Autodetect failed and project doesn't provide $handler handler :("
+    end
+  end
 
   success "🐳 Build succeeded!"
 end
 
 function check
-  run "check"
+  set handler "check"
+
+  if test (has-handler $handler)
+    run $handler
+  else
+    switch (detect-manager) 
+      case "mix"
+        mix check
+      case "npm"
+        npm run check
+      case "yarn"
+        yarn run check
+      case "cargo"
+        cargo test
+      case "*"
+        error "Autodetect failed and project doesn't provide $handler handler :("
+    end
+  end
 
   success "🙉 Test succeeded!"
 end
 
 function format
-  run format
+  set handler "format"
+
+  if test (has-handler $handler)
+    run $handler
+  else
+    switch (detect-manager) 
+      case "mix"
+        mix format
+      case "npm"
+        npx prettier --write .
+      case "yarn"
+        yarn prettier --write .
+      case "cargo"
+        cargo fmt
+      case "*"
+        error "Autodetect failed and project doesn't provide $handler handler :("
+    end
+  end
 
   success "🐺 Source files formatted :)"
 end
@@ -292,6 +380,8 @@ else
         build $argv[2..-1]
       case "check"
         check
+      case "format"
+        format
       case "deploy"
         deploy
       case "new"
