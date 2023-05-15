@@ -58,15 +58,13 @@ end
 
 function detect-manager 
   if test -e ./mix.exs
-    "mix"
+    echo "mix"
   else if test -e ./yarn.lock
-    "yarn"
+    echo "yarn"
   else if test -e ./package.json
-    "npm"
+    echo "npm"
   else if test -e ./cargo.toml
-    "cargo"
-  else
-    false
+    echo "cargo"
   end
 end
 
@@ -89,7 +87,7 @@ function setup
   if test (has-handler $handler)
     run $handler
   else
-    switch (detect-manager) 
+    switch (detect-manager)
       case "mix"
         mix setup
       case "npm"
@@ -110,7 +108,7 @@ function build --description "build [args]"
   if test (has-handler $handler)
     run $handler $argv
   else
-    switch (detect-manager) 
+    switch (detect-manager)
       case "mix"
         mix phx.server $argv
       case "npm"
@@ -133,7 +131,7 @@ function check
   if test (has-handler $handler)
     run $handler
   else
-    switch (detect-manager) 
+    switch (detect-manager)
       case "mix"
         mix check
       case "npm"
@@ -156,7 +154,7 @@ function format
   if test (has-handler $handler)
     run $handler
   else
-    switch (detect-manager) 
+    switch (detect-manager)
       case "mix"
         mix format
       case "npm"
@@ -333,11 +331,24 @@ end
 
 # Entrypoint
 
-function entrypoint
-  if test -e .ci/server.sh
-    .ci/server.sh
+function entrypoint --description "entrypoint <args>"
+  set handler "server"
+
+  if test (has-handler $handler)
+    run $handler $argv
   else
-    error "Project doesn't provide entrypoint (usually .ci/server.sh)"
+    switch (detect-manager)
+      case "mix"
+        mix phx.server $argv
+      case "npm"
+        npm start  $argv
+      case "yarn"
+        yarn serve $argv
+      case "cargo"
+        cargo run $argv
+      case "*"
+        error "Project doesn't provide entrypoint (usually .ci/server.sh)"
+    end
   end
 end
 
