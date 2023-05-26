@@ -110,7 +110,7 @@ function build --description "build [args]"
   else
     switch (detect-manager)
       case "mix"
-        mix phx.server $argv
+        mix compile $argv
       case "npm"
         npm run build $argv
       case "yarn"
