@@ -89,7 +89,7 @@ function setup
   else
     switch (detect-manager)
       case "mix"
-        mix setup
+        mix deps.get && mix setup
       case "npm"
         npm install
       case "yarn"
