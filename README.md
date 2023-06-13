@@ -6,7 +6,7 @@ Project manager written in Fish.
 
 Bix is a simple tool that wraps package managers. Why? Well I work with a lot of codebases, in a lot of languages and grew tired of accidentally typing `mix phx.server` in a node project, or `cargo run` in an elixir project and vice versa.
 
-For example, this is what I would normally run to initialize a new project:
+Besides that, bix also includes shortcuts to perform common tasks, like initializing a repo, and running deploy scripts. For example, this is what I would normally run to initialize a new project:
 
 ```fish
 mkdir lok && cd lok
