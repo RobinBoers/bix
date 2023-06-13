@@ -320,6 +320,14 @@ function merge -a from into --description "merge <from> <into> [merge args]"
   success "🐙 Branch $from has been merged into $into. Yay!"
 end
 
+function undo-commit 
+  git reset HEAD^
+end
+
+function remove -a file --description "remove <file>" 
+  git reset file
+end
+
 # Self-updating
 
 function update
@@ -373,6 +381,7 @@ function help
   echo "    link-repo      Adds a remote URL to the current local repo."
   echo "    push           Pushes the current commited changes to the remote and runs the 'deploy' handler."
   echo "    merge          Merges the current branch into another branch branch and then runs the above 'push' command."
+  echo "    undo-commit    Un-commits the last commit."
   echo
   echo "    help           Prints this help text."
   echo "    update         Pulls the latest bix version from source to replace the current one."
@@ -407,6 +416,8 @@ else
         push $argv[2..-1]
       case "merge"
         merge $argv[2..-1]
+      case "undo-commit"
+        undo-commit
       case "run"
         run $argv[2..-1]
       case "help"
