@@ -84,7 +84,7 @@ end
 function setup
   set handler "setup"
 
-  if test (has-handler $handler)
+  if has-handler $handler
     run $handler
   else
     switch (detect-manager)
@@ -105,7 +105,7 @@ end
 function build --description "build [args]"
   set handler "build"
 
-  if test (has-handler $handler)
+  if has-handler $handler
     run $handler $argv
   else
     switch (detect-manager)
@@ -128,7 +128,7 @@ end
 function check
   set handler "check"
 
-  if test (has-handler $handler)
+  if has-handler $handler
     run $handler
   else
     switch (detect-manager)
@@ -151,7 +151,7 @@ end
 function format
   set handler "format"
 
-  if test (has-handler $handler)
+  if has-handler $handler
     run $handler
   else
     switch (detect-manager)
@@ -342,7 +342,7 @@ end
 function entrypoint --description "entrypoint <args>"
   set handler "server"
 
-  if test (has-handler $handler)
+  if has-handler $handler
     run $handler $argv
   else
     switch (detect-manager)
