@@ -355,7 +355,7 @@ function entrypoint --description "entrypoint <args>"
       case "cargo"
         cargo run $argv
       case "*"
-        error "Project doesn't provide entrypoint (usually .ci/server.sh)"
+        error "Project doesn't provide entrypoint (usually .ci/server.sh), and autodetect failed."
     end
   end
 end
