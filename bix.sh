@@ -37,12 +37,14 @@ function has-handler -a handler --description "has-handler <handler>"
 end
 
 function run -a handler --description "run <handler> [args]"
+  set oldargs $argv
+
   set --local options 'no-error'
   argparse $options -- $argv
 
   if has-handler $handler
     # Caution: the remaining args could include the --no-error flag, which is then also passed to the handler!
-    ./.ci/$handler.sh $argv[2..-1]
+    ./.ci/$handler.sh $oldargs
   else
     if not set --query _flag_no_error
       error "Project doesn't provide $handler handler :("
@@ -237,7 +239,7 @@ function create-repo -a name description "create-repo <repo> <description> [--or
   if set --query _flag_org  
     set response (curl "$BIX_GITEA_API_BASE/orgs/$org/repos" \
       --fail-with-body --no-progress-meter \
-      -H "Authorization: token $token"
+      -H "Authorization: token $token" \
       -H "Content-Type: application/json" \
       -d $body)
 
@@ -299,8 +301,7 @@ function delete-remote -a remote --description "delete-remote <remote>"
   git remote remove $remote
 end
 
-function push --description "push <args>"
-  git push $argv
+function pre-push --description "push <args>"
   run "deploy" --no-error 
 
   if test -e .ci/deploy.sh
@@ -379,8 +380,8 @@ function help
   echo "    auth           Authenticates an external server (rn the only provider is Gitea)."
   echo "    create-repo    Creates a new remote repository using the Gitea API." 
   echo "    link-repo      Adds a remote URL to the current local repo."
-  echo "    push           Pushes the current commited changes to the remote and runs the 'deploy' handler."
-  echo "    merge          Merges the current branch into another branch branch and then runs the above 'push' command."
+  echo "    merge          Merges the current branch into another branch branch and then pushes the merge commit."
+  echo "    pre-push       Command to run in Git pre-push hook to deploy the latest commit."
   echo "    undo-commit    Un-commits the last commit."
   echo
   echo "    help           Prints this help text."
@@ -403,7 +404,7 @@ else
       case "format"
         format
       case "deploy"
-        deploy
+        deploy $argv[2..-1]
       case "new"
         new $argv[2..-1]
       case "auth"
@@ -412,10 +413,10 @@ else
         create-repo $argv[2..-1]
       case "link-repo"
         add-remote $argv[2..-1]
-      case "push"
-        push $argv[2..-1]
       case "merge"
         merge $argv[2..-1]
+      case "pre-push"
+        pre-push
       case "undo-commit"
         undo-commit
       case "run"
