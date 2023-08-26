@@ -1,4 +1,4 @@
-#!/bin/fish
+#!/usr/bin/env fish
 
 # Project manager written in Fish.
 # Functions a bit like `npm`, `mix` or `cargo` would, but is
