@@ -37,7 +37,7 @@ bix link-repo RobinBoers/lok
 ## Installation
 
 ```shell
-curl -sSfL https://git.geheimesite.nl/libre0b11/bix/raw/branch/master/install.sh | fish
+curl -sSfL http://git.dupunkto.org/~robin/libre0b11/bix/plain/install.sh | fish
 ```
 
 ## Usage
